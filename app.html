@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金物カウンター v2</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Share+Tech+Mono&display=swap');
+:root {
+  --bg:#16181d;--surface:#1e2128;--surface2:#252830;--border:#2a2d36;
+  --accent:#5b9cf6;--accent2:#38bdf8;--text:#e2e4ed;--muted:#5a6072;
+  --red:#f87171;--blue:#60a5fa;--green:#4ade80;--yellow:#facc15;--orange:#fb923c;--purple:#c084fc;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Noto Sans JP',sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+header{height:52px;min-height:52px;padding:0 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:16px;background:var(--surface);}
+.logo{font-size:16px;font-weight:700;letter-spacing:.06em;}.logo span{color:var(--accent);}
+.version{font-size:11px;color:var(--muted);font-family:'Share Tech Mono',monospace;}
+.header-spacer{flex:1;}
+.btn-main{background:var(--accent);color:#fff;border:none;border-radius:6px;padding:7px 20px;font-size:13px;font-weight:700;font-family:'Noto Sans JP',sans-serif;cursor:pointer;letter-spacing:.05em;transition:opacity .2s;}
+.btn-main:hover{opacity:.85;}.btn-main:disabled{opacity:.3;cursor:not-allowed;}
+.main-layout{flex:1;display:flex;overflow:hidden;}
+.tool-panel{width:72px;min-width:72px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:4px;overflow-y:auto;}
+.sec-label{font-size:9px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin:8px 0 4px;font-family:'Share Tech Mono',monospace;}
+.tbtn{width:48px;height:48px;border-radius:10px;border:1px solid transparent;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;transition:all .15s;}
+.tbtn:hover{background:var(--surface2);}.tbtn.active{background:var(--surface2);border-color:var(--accent);}
+.tdot{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;font-family:'Share Tech Mono',monospace;}
+.tlabel{font-size:9px;color:var(--muted);}
+.tdiv{width:40px;height:1px;background:var(--border);margin:6px 0;}
+.tbtn-outline{width:48px;height:48px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;transition:all .15s;}
+.tbtn-outline:hover,.tbtn-outline.active{border-color:var(--accent2);background:rgba(56,189,248,.1);}
+.tbtn-outline.hole:hover,.tbtn-outline.hole.active{border-color:#f97316;background:rgba(249,115,22,.1);}
+.tbtn-outline.del:hover,.tbtn-outline.del.active{border-color:var(--red);background:rgba(248,113,113,.1);}
+.tbtn-outline .ti{font-size:18px;}.tbtn-outline .tl{font-size:9px;color:var(--muted);}
+.canvas-wrapper{flex:1;position:relative;overflow:hidden;background:#0d0e11;display:flex;align-items:center;justify-content:center;}
+.canvas-container{position:relative;display:inline-block;}
+#imgCanvas{display:block;position:relative;}
+#overlayCanvas{display:block;position:absolute;top:0;left:0;}
+.result-panel{width:260px;min-width:260px;background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.rp-header{padding:14px 16px 10px;border-bottom:1px solid var(--border);font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;font-family:'Share Tech Mono',monospace;}
+.rp-body{flex:1;overflow-y:auto;padding:12px;}
+.rrow{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;background:var(--surface2);margin-bottom:4px;border:1px solid var(--border);}
+.rrow .dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;}.rrow .rn{flex:1;font-size:12px;}
+.rrow .rc{font-family:'Share Tech Mono',monospace;font-size:18px;font-weight:700;}.rrow .ru{font-size:10px;color:var(--muted);}
+.rp-total{border-top:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;}
+.rp-total .tl{font-size:12px;color:var(--accent);font-weight:700;}
+.rp-total .tv{font-family:'Share Tech Mono',monospace;font-size:22px;font-weight:700;color:var(--accent);}
+.empty-r{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--muted);font-size:12px;text-align:center;line-height:1.8;}
+.status-bar{height:26px;min-height:26px;background:var(--surface);border-top:1px solid var(--border);padding:0 16px;display:flex;align-items:center;font-size:11px;color:var(--muted);font-family:'Share Tech Mono',monospace;gap:16px;}
+.status-mode{color:var(--accent2);}
+.upload-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:var(--bg);z-index:10;cursor:pointer;}
+.upload-overlay.hidden{display:none;}
+.upload-overlay .u-icon{font-size:48px;opacity:.3;}.upload-overlay .u-text{font-size:14px;color:var(--muted);text-align:center;line-height:1.8;}
+.upload-overlay input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:200;}
+.modal-bg.hidden{display:none;}
+.modal{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:24px;width:480px;max-width:90vw;}
+.modal h3{font-size:15px;font-weight:700;margin-bottom:16px;}
+.modal-results{display:flex;flex-direction:column;gap:6px;margin-bottom:20px;max-height:50vh;overflow-y:auto;}
+.mrow{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--surface);border-radius:6px;}
+.mrow .dot{width:14px;height:14px;border-radius:50%;flex-shrink:0;}.mrow .mn{flex:1;font-size:13px;}
+.mrow .mc{font-family:'Share Tech Mono',monospace;font-size:20px;font-weight:700;}.mrow .mu{font-size:11px;color:var(--muted);}
+.modal-total{border-top:1px solid var(--border);padding-top:12px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;}
+.modal-total .tl{font-size:13px;color:var(--accent);font-weight:700;}
+.modal-total .tv{font-family:'Share Tech Mono',monospace;font-size:24px;font-weight:700;color:var(--accent);}
+.modal-close{width:100%;padding:10px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;font-family:'Noto Sans JP',sans-serif;cursor:pointer;}
+.modal-close:hover{opacity:.85;}
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">金物<span>カウンター</span></div>
+  <div class="version">v2.0</div>
+  <div class="header-spacer"></div>
+  <button class="btn-main" id="btnAnalyze" disabled>解　析</button>
+</header>
+<div class="main-layout">
+  <div class="tool-panel">
+    <div class="sec-label">色</div>
+    <button class="tbtn" id="t-red"    onclick="selectStamp('red')">   <div class="tdot" style="background:#f87171"></div><div class="tlabel">赤</div></button>
+    <button class="tbtn" id="t-blue"   onclick="selectStamp('blue')">  <div class="tdot" style="background:#60a5fa"></div><div class="tlabel">青</div></button>
+    <button class="tbtn" id="t-green"  onclick="selectStamp('green')"> <div class="tdot" style="background:#4ade80"></div><div class="tlabel">緑</div></button>
+    <button class="tbtn" id="t-yellow" onclick="selectStamp('yellow')"><div class="tdot" style="background:#facc15"></div><div class="tlabel">黄</div></button>
+    <button class="tbtn" id="t-orange" onclick="selectStamp('orange')"><div class="tdot" style="background:#fb923c"></div><div class="tlabel">橙</div></button>
+    <button class="tbtn" id="t-purple" onclick="selectStamp('purple')"><div class="tdot" style="background:#c084fc"></div><div class="tlabel">紫</div></button>
+    <div class="tdiv"></div>
+    <div class="sec-label">記号</div>
+    <button class="tbtn-outline" id="t-tsu" onclick="selectStamp('tsu')" style="font-size:11px;font-family:'Share Tech Mono',monospace;font-weight:700;">
+      <div>(通)</div><div class="tl">記号</div>
+    </button>
+    <div class="tdiv"></div>
+    <div class="sec-label">範囲</div>
+    <button class="tbtn-outline" id="t-poly-add"  onclick="selectPoly('add')"> <div class="ti">▱</div><div class="tl">合板</div></button>
+    <button class="tbtn-outline hole" id="t-poly-hole" onclick="selectPoly('hole')"><div class="ti">⬡</div><div class="tl">穴</div></button>
+    <div class="tdiv"></div>
+    <div class="sec-label">編集</div>
+    <button class="tbtn-outline del" id="t-del" onclick="selectDel()"><div class="ti">✕</div><div class="tl">削除</div></button>
+  </div>
+
+  <div class="canvas-wrapper" id="canvasWrapper">
+    <div class="upload-overlay" id="uploadOverlay">
+      <div class="u-icon">🗂</div>
+      <div class="u-text">図面画像をドラッグ＆ドロップ<br>またはクリックして選択<br><small>PNG / JPG</small></div>
+      <input type="file" id="fileInput" accept="image/*">
+    </div>
+    <div class="canvas-container" id="canvasContainer" style="display:none">
+      <canvas id="imgCanvas"></canvas>
+      <canvas id="overlayCanvas"></canvas>
+    </div>
+  </div>
+
+  <div class="result-panel">
+    <div class="rp-header">カウント</div>
+    <div class="rp-body" id="rpBody">
+      <div class="empty-r"><div style="font-size:28px;opacity:.2">📋</div>スタンプを配置して<br>解析ボタンを押してください</div>
+    </div>
+    <div class="rp-total" id="rpTotal" style="display:none">
+      <div class="tl">合　計</div>
+      <div class="tv" id="rpTotalVal">0</div>
+    </div>
+  </div>
+</div>
+
+<div class="status-bar">
+  <span class="status-mode" id="statusMode">画像を読み込んでください</span>
+  <span id="statusInfo"></span>
+</div>
+
+<div class="modal-bg hidden" id="modalBg">
+  <div class="modal">
+    <h3>🔩 解析結果</h3>
+    <div class="modal-results" id="modalResults"></div>
+    <div class="modal-total"><div class="tl">合　計</div><div class="tv" id="modalTotal">0</div></div>
+    <button class="modal-close" onclick="closeModal()">閉じる</button>
+  </div>
+</div>
+
+<script>
+const STAMPS = {
+  red:    {name:'赤',   color:'#f87171', type:'color'},
+  blue:   {name:'青',   color:'#60a5fa', type:'color'},
+  green:  {name:'緑',   color:'#4ade80', type:'color'},
+  yellow: {name:'黄',   color:'#facc15', type:'color'},
+  orange: {name:'橙',   color:'#fb923c', type:'color'},
+  purple: {name:'紫',   color:'#c084fc', type:'color'},
+  tsu:    {name:'(通)', color:'#94a3b8', type:'symbol'},
+};
+
+const R = 12;
+let mode = null;
+let stamps = [];
+let polygons = [];
+let currentPoly = null;
+let nid = 1;
+let imgObj = null;
+let scale = 1;
+
+const imgCanvas     = document.getElementById('imgCanvas');
+const overlayCanvas = document.getElementById('overlayCanvas');
+const ictx = imgCanvas.getContext('2d');
+const octx = overlayCanvas.getContext('2d');
+const wrapper   = document.getElementById('canvasWrapper');
+const container = document.getElementById('canvasContainer');
+const overlay   = document.getElementById('uploadOverlay');
+const fileInput = document.getElementById('fileInput');
+const btnAnalyze = document.getElementById('btnAnalyze');
+
+// 画像読み込み
+fileInput.addEventListener('change', e => { if(e.target.files[0]) loadImg(e.target.files[0]); });
+wrapper.addEventListener('dragover', e => e.preventDefault());
+wrapper.addEventListener('drop', e => { e.preventDefault(); if(e.dataTransfer.files[0]) loadImg(e.dataTransfer.files[0]); });
+
+function loadImg(file) {
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = new Image();
+    img.onload = () => {
+      imgObj = img;
+      fit();
+      overlay.classList.add('hidden');
+      container.style.display = 'inline-block';
+      btnAnalyze.disabled = false;
+      setStatus('ツールを選択してスタンプを配置してください');
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function fit() {
+  const ww = wrapper.clientWidth - 32, wh = wrapper.clientHeight - 32;
+  scale = Math.min(ww / imgObj.naturalWidth, wh / imgObj.naturalHeight, 1);
+  const dw = Math.round(imgObj.naturalWidth * scale);
+  const dh = Math.round(imgObj.naturalHeight * scale);
+  imgCanvas.width = overlayCanvas.width = dw;
+  imgCanvas.height = overlayCanvas.height = dh;
+  ictx.drawImage(imgObj, 0, 0, dw, dh);
+  redraw();
+}
+
+window.addEventListener('resize', () => { if(imgObj) fit(); });
+
+// ツール選択
+function selectStamp(key) {
+  mode = 'stamp_' + key;
+  currentPoly = null;
+  updateUI();
+  setStatus(STAMPS[key].name + ' スタンプ — 図面をクリック');
+}
+function selectPoly(type) {
+  mode = 'poly_' + type;
+  currentPoly = null;
+  updateUI();
+  setStatus(type==='add' ? '合板範囲 — クリックで点を追加、最初の点に戻ると確定' : '穴範囲 — クリックで点を追加、最初の点に戻ると確定');
+}
+function selectDel() {
+  mode = 'delete';
+  currentPoly = null;
+  updateUI();
+  setStatus('削除 — スタンプまたは範囲をクリック');
+}
+
+function updateUI() {
+  document.querySelectorAll('.tbtn,.tbtn-outline').forEach(el => el.classList.remove('active'));
+  const map = {
+    stamp_red:'t-red', stamp_blue:'t-blue', stamp_green:'t-green',
+    stamp_yellow:'t-yellow', stamp_orange:'t-orange', stamp_purple:'t-purple',
+    stamp_tsu:'t-tsu', poly_add:'t-poly-add', poly_hole:'t-poly-hole', delete:'t-del'
+  };
+  if(mode && map[mode]) document.getElementById(map[mode])?.classList.add('active');
+}
+
+// キャンバス操作
+overlayCanvas.addEventListener('click', e => {
+  if(!mode) return;
+  const {x,y} = cpos(e);
+  if(mode.startsWith('stamp_')) {
+    stamps.push({id:nid++, key:mode.replace('stamp_',''), x, y});
+    redraw(); updatePanel();
+  } else if(mode.startsWith('poly_')) {
+    const type = mode.replace('poly_','');
+    polyClick(x, y, type);
+  } else if(mode==='delete') {
+    doDelete(x, y);
+  }
+});
+
+overlayCanvas.addEventListener('mousemove', e => {
+  if(!mode?.startsWith('poly_') || !currentPoly) return;
+  const {x,y} = cpos(e);
+  redraw(x, y);
+});
+
+function cpos(e) {
+  const r = overlayCanvas.getBoundingClientRect();
+  return {x: e.clientX-r.left, y: e.clientY-r.top};
+}
+
+function polyClick(x, y, type) {
+  if(!currentPoly || currentPoly.type !== type) {
+    currentPoly = {id:nid++, type, points:[{x,y}], closed:false};
+    return;
+  }
+  const f = currentPoly.points[0];
+  if(Math.hypot(x-f.x, y-f.y) < 14 && currentPoly.points.length >= 3) {
+    currentPoly.closed = true;
+    polygons.push({...currentPoly, points:[...currentPoly.points]});
+    currentPoly = null;
+    redraw(); updatePanel();
+  } else {
+    currentPoly.points.push({x,y});
+    redraw();
+  }
+}
+
+function doDelete(x, y) {
+  const si = stamps.findIndex(s => Math.hypot(s.x-x,s.y-y) < R+6);
+  if(si !== -1) { stamps.splice(si,1); redraw(); updatePanel(); return; }
+  const pi = polygons.findIndex(p => pip(x,y,p.points));
+  if(pi !== -1) { polygons.splice(pi,1); redraw(); updatePanel(); }
+}
+
+// 描画
+function redraw(mx, my) {
+  octx.clearRect(0,0,overlayCanvas.width,overlayCanvas.height);
+  polygons.forEach(p => drawPoly(p, false));
+  if(currentPoly) drawPoly(currentPoly, true, mx, my);
+  stamps.forEach(s => drawStamp(s));
+}
+
+function drawPoly(p, inProg, mx, my) {
+  if(!p.points.length) return;
+  const isHole = p.type==='hole';
+  const fc = isHole ? 'rgba(249,115,22,.15)' : 'rgba(56,189,248,.18)';
+  const sc = isHole ? '#f97316' : '#38bdf8';
+  octx.beginPath();
+  octx.moveTo(p.points[0].x, p.points[0].y);
+  p.points.forEach((pt,i) => { if(i>0) octx.lineTo(pt.x,pt.y); });
+  if(inProg && mx!==undefined) octx.lineTo(mx,my);
+  if(!inProg || p.closed) octx.closePath();
+  if(p.closed || !inProg) { octx.fillStyle=fc; octx.fill(); }
+  octx.strokeStyle=sc; octx.lineWidth=1.5; octx.setLineDash(inProg?[5,3]:[]); octx.stroke(); octx.setLineDash([]);
+  p.points.forEach((pt,i) => {
+    octx.beginPath(); octx.arc(pt.x,pt.y,i===0?5:3,0,Math.PI*2);
+    octx.fillStyle=sc; octx.fill();
+  });
+}
+
+function drawStamp(s) {
+  const def = STAMPS[s.key];
+  if(!def) return;
+  octx.beginPath(); octx.arc(s.x,s.y,R,0,Math.PI*2);
+  if(def.type==='symbol') {
+    octx.fillStyle='rgba(148,163,184,.25)'; octx.fill();
+    octx.strokeStyle=def.color; octx.lineWidth=1.5; octx.stroke();
+    octx.fillStyle=def.color; octx.font="bold 9px 'Noto Sans JP'";
+    octx.textAlign='center'; octx.textBaseline='middle';
+    octx.fillText('通',s.x,s.y);
+  } else {
+    octx.fillStyle=def.color+'cc'; octx.fill();
+    octx.strokeStyle='#fff'; octx.lineWidth=1; octx.stroke();
+  }
+}
+
+// ポイントインポリゴン
+function pip(px,py,pts) {
+  let inside=false;
+  for(let i=0,j=pts.length-1;i<pts.length;j=i++){
+    const xi=pts[i].x,yi=pts[i].y,xj=pts[j].x,yj=pts[j].y;
+    if(((yi>py)!==(yj>py))&&px<(xj-xi)*(py-yi)/(yj-yi)+xi) inside=!inside;
+  }
+  return inside;
+}
+
+function inPoly(s) {
+  const inAdd  = polygons.filter(p=>p.type==='add' &&p.closed).some(p=>pip(s.x,s.y,p.points));
+  const inHole = polygons.filter(p=>p.type==='hole'&&p.closed).some(p=>pip(s.x,s.y,p.points));
+  return inAdd && !inHole;
+}
+
+// 集計
+function calc() {
+  const hasPoly = polygons.some(p=>p.type==='add'&&p.closed);
+  const counts = {};
+  stamps.forEach(s => {
+    const def = STAMPS[s.key]; if(!def) return;
+    let label = def.name;
+    if(hasPoly && inPoly(s)) label += '(合)';
+    if(!counts[label]) counts[label]={color:def.color,count:0};
+    counts[label].count++;
+  });
+  return counts;
+}
+
+// パネル更新
+function updatePanel() {
+  const counts = calc();
+  const entries = Object.entries(counts);
+  const rpBody = document.getElementById('rpBody');
+  const rpTotal = document.getElementById('rpTotal');
+  if(!entries.length) {
+    rpBody.innerHTML='<div class="empty-r"><div style="font-size:28px;opacity:.2">📋</div>スタンプを配置して<br>解析ボタンを押してください</div>';
+    rpTotal.style.display='none'; return;
+  }
+  const total = entries.reduce((s,[,v])=>s+v.count,0);
+  rpBody.innerHTML = entries.map(([label,v])=>`
+    <div class="rrow">
+      <div class="dot" style="background:${v.color}"></div>
+      <div class="rn">${label}</div>
+      <div class="rc" style="color:${v.color}">${v.count}</div>
+      <div class="ru">個</div>
+    </div>`).join('');
+  document.getElementById('rpTotalVal').textContent = total;
+  rpTotal.style.display='flex';
+}
+
+// 解析モーダル
+btnAnalyze.addEventListener('click', () => {
+  const counts = calc();
+  const entries = Object.entries(counts);
+  const total = entries.reduce((s,[,v])=>s+v.count,0);
+  document.getElementById('modalResults').innerHTML = entries.length
+    ? entries.map(([label,v])=>`
+      <div class="mrow">
+        <div class="dot" style="background:${v.color}"></div>
+        <div class="mn">${label}</div>
+        <div class="mc" style="color:${v.color}">${v.count}</div>
+        <div class="mu">個</div>
+      </div>`).join('')
+    : '<div style="color:var(--muted);font-size:13px;padding:8px">スタンプがありません</div>';
+  document.getElementById('modalTotal').textContent = total;
+  document.getElementById('modalBg').classList.remove('hidden');
+});
+
+function closeModal() { document.getElementById('modalBg').classList.add('hidden'); }
+function setStatus(msg) { document.getElementById('statusMode').textContent = msg; }
+</script>
+</body>
+</html>
