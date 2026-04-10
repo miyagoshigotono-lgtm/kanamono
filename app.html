@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金物カウンター</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Share+Tech+Mono&display=swap');
+
+  :root {
+    --bg: #1a1c20;
+    --surface: #22252b;
+    --border: #2e3139;
+    --accent: #4a9eff;
+    --text: #e8eaf0;
+    --muted: #6b7280;
+    --red: #ff5f5f;
+    --blue: #4a9eff;
+    --green: #4ecb71;
+    --yellow: #ffd040;
+    --orange: #ff9040;
+    --purple: #b07fff;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans JP', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    padding: 20px 32px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  header h1 {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+
+  header .sub {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: 'Share Tech Mono', monospace;
+    margin-top: 2px;
+  }
+
+  .icon {
+    width: 36px; height: 36px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+
+  main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 0;
+    height: calc(100vh - 65px);
+  }
+
+  /* 左：画像エリア */
+  .image-area {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    border-right: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .drop-zone {
+    flex: 1;
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    position: relative;
+    overflow: hidden;
+    min-height: 300px;
+  }
+
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color: var(--accent);
+    background: rgba(74, 158, 255, 0.04);
+  }
+
+  .drop-zone .hint {
+    font-size: 13px;
+    color: var(--muted);
+    text-align: center;
+    line-height: 1.8;
+  }
+
+  .drop-icon { font-size: 40px; opacity: 0.3; }
+
+  .drop-zone img {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: contain;
+    padding: 8px;
+  }
+
+  .drop-zone input[type=file] {
+    position: absolute; inset: 0;
+    opacity: 0; cursor: pointer;
+    width: 100%; height: 100%;
+  }
+
+  .filename {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: 'Share Tech Mono', monospace;
+    text-align: center;
+    height: 16px;
+  }
+
+  .btn-analyze {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 24px;
+    font-size: 15px;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+    letter-spacing: 0.05em;
+  }
+
+  .btn-analyze:hover { opacity: 0.85; }
+  .btn-analyze:active { transform: scale(0.98); }
+  .btn-analyze:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  /* 右：結果エリア */
+  .result-area {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow-y: auto;
+  }
+
+  .result-area h2 {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .result-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .result-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    animation: fadeIn 0.3s ease forwards;
+    opacity: 0;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .color-dot {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 8px currentColor;
+  }
+
+  .color-name {
+    flex: 1;
+    font-size: 15px;
+    font-weight: 500;
+  }
+
+  .color-count {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .color-unit {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+    text-align: right;
+  }
+
+  .total-box {
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    border-radius: 10px;
+    padding: 16px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .total-box .label {
+    font-size: 13px;
+    color: var(--accent);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+
+  .total-box .value {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--muted);
+    font-size: 13px;
+    text-align: center;
+    line-height: 1.8;
+  }
+
+  .empty-state .big { font-size: 32px; opacity: 0.2; }
+
+  .status-bar {
+    padding: 6px 18px;
+    font-size: 12px;
+    color: var(--muted);
+    font-family: 'Share Tech Mono', monospace;
+    border-top: 1px solid var(--border);
+  }
+
+  .loading {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .error-msg {
+    background: rgba(255,95,95,0.1);
+    border: 1px solid rgba(255,95,95,0.3);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--red);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="icon">🔩</div>
+  <div>
+    <h1>金物カウンター</h1>
+    <div class="sub">COLOR DETECTION TOOL v0.1</div>
+  </div>
+</header>
+
+<main>
+  <!-- 左：画像 -->
+  <div class="image-area">
+    <div class="drop-zone" id="dropZone">
+      <div class="drop-icon">🗂</div>
+      <div class="hint">画像をドラッグ＆ドロップ<br>またはクリックして選択<br><small>PNG / JPG</small></div>
+      <img id="preview" style="display:none">
+      <input type="file" id="fileInput" accept="image/*">
+    </div>
+    <div class="filename" id="filename">—</div>
+    <button class="btn-analyze" id="btnAnalyze" disabled>解　析</button>
+  </div>
+
+  <!-- 右：結果 -->
+  <div class="result-area">
+    <h2>解析結果</h2>
+    <div id="resultContent">
+      <div class="empty-state">
+        <div class="big">📋</div>
+        図面画像を読み込んで<br>「解析」ボタンを押してください
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="status-bar" id="statusBar">待機中</div>
+
+<script>
+const COLOR_MAP = {
+  "赤":   { color: "#ff5f5f", dot: "#ff5f5f" },
+  "青":   { color: "#4a9eff", dot: "#4a9eff" },
+  "緑":   { color: "#4ecb71", dot: "#4ecb71" },
+  "黄":   { color: "#ffd040", dot: "#ffd040" },
+  "橙":   { color: "#ff9040", dot: "#ff9040" },
+  "紫":   { color: "#b07fff", dot: "#b07fff" },
+};
+
+const SERVER = "http://localhost:8765/analyze";
+
+let imageBase64 = null;
+
+const dropZone  = document.getElementById("dropZone");
+const fileInput = document.getElementById("fileInput");
+const preview   = document.getElementById("preview");
+const filename  = document.getElementById("filename");
+const btnAnalyze= document.getElementById("btnAnalyze");
+const resultContent = document.getElementById("resultContent");
+const statusBar = document.getElementById("statusBar");
+
+// ファイル選択
+fileInput.addEventListener("change", e => {
+  const file = e.target.files[0];
+  if (file) loadFile(file);
+});
+
+// ドラッグ＆ドロップ
+dropZone.addEventListener("dragover", e => { e.preventDefault(); dropZone.classList.add("dragover"); });
+dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover"));
+dropZone.addEventListener("drop", e => {
+  e.preventDefault();
+  dropZone.classList.remove("dragover");
+  const file = e.dataTransfer.files[0];
+  if (file) loadFile(file);
+});
+
+function loadFile(file) {
+  filename.textContent = file.name;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    imageBase64 = ev.target.result;
+    preview.src = imageBase64;
+    preview.style.display = "block";
+    dropZone.querySelector(".drop-icon").style.display = "none";
+    dropZone.querySelector(".hint").style.display = "none";
+    btnAnalyze.disabled = false;
+    setStatus("画像読み込み完了 — 解析ボタンを押してください");
+  };
+  reader.readAsDataURL(file);
+}
+
+// 解析
+btnAnalyze.addEventListener("click", async () => {
+  if (!imageBase64) return;
+
+  btnAnalyze.disabled = true;
+  setStatus('<span class="loading"></span>解析中...');
+  resultContent.innerHTML = '<div class="empty-state"><div class="loading" style="width:24px;height:24px;border-width:3px"></div></div>';
+
+  try {
+    const res = await fetch(SERVER, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ image: imageBase64 })
+    });
+
+    if (!res.ok) throw new Error(`サーバーエラー: ${res.status}`);
+    const data = await res.json();
+
+    if (data.error) throw new Error(data.error);
+
+    renderResults(data);
+    setStatus("解析完了");
+  } catch(e) {
+    resultContent.innerHTML = `<div class="error-msg">⚠ ${e.message}<br><small>server.py が起動しているか確認してください</small></div>`;
+    setStatus("エラー発生");
+  } finally {
+    btnAnalyze.disabled = false;
+  }
+});
+
+function renderResults(data) {
+  const entries = Object.entries(data).filter(([,v]) => v.count > 0);
+
+  if (entries.length === 0) {
+    resultContent.innerHTML = '<div class="empty-state"><div class="big">🔍</div>色が検出されませんでした</div>';
+    return;
+  }
+
+  const total = entries.reduce((s, [,v]) => s + v.count, 0);
+
+  let html = '<div class="result-list">';
+  entries.forEach(([name, val], i) => {
+    const cm = COLOR_MAP[name] || { dot: "#aaa" };
+    html += `
+      <div class="result-item" style="animation-delay:${i * 0.06}s">
+        <div class="color-dot" style="background:${cm.dot}"></div>
+        <div class="color-name">${name}</div>
+        <div>
+          <div class="color-count" style="color:${cm.dot}">${val.count}</div>
+          <div class="color-unit">個</div>
+        </div>
+      </div>`;
+  });
+  html += '</div>';
+
+  html += `
+    <div class="total-box">
+      <div class="label">合　計</div>
+      <div class="value">${total} <span style="font-size:14px;opacity:0.7">個</span></div>
+    </div>`;
+
+  resultContent.innerHTML = html;
+}
+
+function setStatus(msg) {
+  statusBar.innerHTML = msg;
+}
+</script>
+</body>
+</html>
